@@ -1,0 +1,61 @@
+{
+  "name": "checker-itptit-backend",
+  "version": "1.0.0",
+  "description": "",
+  "type": "commonjs",
+  "main": "app.js",
+  "engines": {
+    "node": "16.20.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./src/app",
+    "dev": "nodemon ./src/app",
+    "dcc:up": "cd ./development && docker-compose up -d",
+    "dcc:down": "cd ./development && docker-compose down",
+    "setup:create-env": "cp .env.template .env",
+    "migratedb": "npx sequelize db:migrate",
+    "migratedb:undo": "npx sequelize db:migrate:undo",
+    "migratedb:undo:all": "npx sequelize db:migrate:undo:all",
+    "pretty": "prettier --write \"./**/*.{js,jsx,ts,tsx,json}\" --ignore-path .prettierignore",
+    "seederdb": "npx sequelize-cli db:seed:all"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azoom-nguyen-tien-dat/checker-itptit-backend.git"
+  },
+  "author": "itptit",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/azoom-nguyen-tien-dat/checker-itptit-backend/issues"
+  },
+  "homepage": "https://github.com/azoom-nguyen-tien-dat/checker-itptit-backend#readme",
+  "dependencies": {
+    "aws-sdk": "^2.863.0",
+    "bcrypt": "^5.1.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "formidable": "^2.1.1",
+    "helmet": "^7.0.0",
+    "joi": "^17.9.2",
+    "jsonwebtoken": "^9.0.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.4",
+		"multer-s3": "2.10.0",
+    "mysql2": "^3.4.3",
+    "nodemailer": "^6.9.3",
+    "sequelize": "^6.32.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22",
+    "prettier": "^2.8.8",
+    "sequelize-cli": "^6.6.1"
+  }
+}

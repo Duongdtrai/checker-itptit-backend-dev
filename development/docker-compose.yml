@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  itptit-mysql:
+    image: mysql:8.0.23
+    ports:
+      - "33066:3306"
+    volumes:
+      - ${DB_DATA_DIR-./mysql/.data}:/var/lib/mysql
+      - ./mysql/initdb:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_DATABASE: itptit
+      MYSQL_USER: itptit
+      MYSQL_PASSWORD: itptit1234@@@
+      MYSQL_ROOT_PASSWORD: itptit1234@@@
+    command: --sql_mode=NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    networks:
+      - itptit-network
+    container_name: itptit-mysql
+networks:
+  itptit-network:    
+volumes:
+  itptit_mysql_data:
+    driver: local    
