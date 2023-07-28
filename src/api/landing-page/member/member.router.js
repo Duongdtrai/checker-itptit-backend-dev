@@ -5,9 +5,8 @@ const API = require('../../api.constant');
 
 router.get(API.ADMIN.MEMBER.GET_ALL, memberController.getAllMembers);
 router.post(API.ADMIN.MEMBER.CREATE, memberController.createMember);
-router.post(API.ADMIN.MEMBER.ADD_BAND, memberController.addBand);
-router.put(API.ADMIN.MEMBER.DELETE_BAND, memberController.deleteBand);
-router.post(API.ADMIN.MEMBER.ADD_SKILL, memberController.addSkill);
-router.put(API.ADMIN.MEMBER.DELETE_SKILL, memberController.deleteSkill);
+router.post(API.ADMIN.MEMBER.CREATE_COMMENT, memberController.createComment);
+router.put(API.ADMIN.MEMBER.DELETE_COMMENT, memberController.deleteComment);
+router.put(API.ADMIN.MEMBER.UPDATE_COMMENT, memberController.updateComment);
 
 module.exports = router;

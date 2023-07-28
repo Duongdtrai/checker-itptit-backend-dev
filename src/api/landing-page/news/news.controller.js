@@ -102,4 +102,25 @@ module.exports = {
       });
     }
   },
+
+  getNewsComments: async (req, res) => {
+    try {
+      const id = req.params.id;
+      const comments = await dbModels.newsCommentsModel.findAll({
+        where: { newsId: id, isDeleted: false },
+        include: [{ model: dbModels.membersModel, as: 'member' }],
+      });
+      return res.status(statusCode[200].code).json({
+        comments,
+        success: true,
+        message: statusCode[200].message,
+      });
+    } catch (error) {
+      return res.status(statusCode[500].code).json({
+        success: false,
+        message: statusCode[500].message,
+        error: error.message,
+      });
+    }
+  },
 };

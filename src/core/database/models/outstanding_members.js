@@ -4,7 +4,6 @@ module.exports = (sequelize, DataTypes) => {
   class OutstandingMembers extends Model {
     static associate(models) {
       OutstandingMembers.belongsTo(models.members, {
-        as: 'member',
         foreignKey: 'memberId',
       });
     }

@@ -5,8 +5,6 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Bands.belongsToMany(models.members, {
         through: models.members_bands,
-        as: 'membersBands',
-        foreignKey: 'bandId',
       });
     }
   }

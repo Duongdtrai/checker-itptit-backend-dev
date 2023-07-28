@@ -5,18 +5,24 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Members.belongsToMany(models.skills, {
         through: models.members_skills,
-        as: 'memberSkill',
         foreignKey: 'memberId',
       });
 
       Members.belongsToMany(models.bands, {
         through: models.members_bands,
-        as: 'memberBand',
+      });
+
+      Members.belongsToMany(models.periods, {
+        through: models.members_bands,
         foreignKey: 'memberId',
       });
 
       Members.hasMany(models.outstanding_members, {
         as: 'member',
+        foreignKey: 'memberId',
+      });
+
+      Members.hasMany(models.news_comments, {
         foreignKey: 'memberId',
       });
     }

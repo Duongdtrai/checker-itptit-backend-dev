@@ -7,6 +7,9 @@ module.exports = (sequelize, DataTypes) => {
         as: 'thumbnails',
         foreignKey: 'newsId',
       });
+      News.hasMany(models.news_comments, {
+        foreignKey: 'newsId',
+      });
     }
   }
   News.init(

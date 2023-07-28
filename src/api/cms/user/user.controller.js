@@ -16,7 +16,8 @@ const moment = require('moment');
 const csv = require('csv-parser');
 const fs = require('fs');
 const { Op } = require('sequelize');
-const imageService = require("../../../utilities/image");
+const imageService = require('../../../utilities/image');
+const memberController = require('./member.controller');
 
 module.exports = {
   loginCMS: async (req, res) => {
@@ -78,7 +79,9 @@ module.exports = {
   getDetailAdmin: async (req, res) => {
     try {
       if (req.userData.member.image) {
-        req.userData.member.image = imageService.getFullPathFile(req.userData.member.image)
+        req.userData.member.image = imageService.getFullPathFile(
+          req.userData.member.image
+        );
       }
       return res.status(STATUS_CODE[204].code).json({
         success: false,
@@ -324,7 +327,7 @@ module.exports = {
   },
 
   importUser: async (req, res) => {
-    console.log("Duong")
+    console.log('Duong');
     const transaction = await itptit.db.sequelize.transaction();
     try {
       const resultFile = [];
@@ -341,7 +344,7 @@ module.exports = {
         });
       });
       for (let result of resultFile) {
-        console.log("result", result)
+        console.log('result', result);
         const newData = {
           email: result[COLUMN_USER_IMPORT.email],
           username: result[COLUMN_USER_IMPORT.username],
@@ -352,7 +355,7 @@ module.exports = {
           course: result[COLUMN_USER_IMPORT.course],
           team: result[COLUMN_USER_IMPORT.team],
         };
-        console.log("newData", newData)
+        console.log('newData', newData);
         // await validateCmsImportFile.validateAsync(newData);
         // const userExist = await dbModels.usersModel.findOne({
         //   where: {
@@ -434,29 +437,31 @@ module.exports = {
     }
   },
 
-  uploadImage: async  (req, res) => { 
+  uploadImage: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-			const image = await imageService.saveUploadImage(req, {
-				FOLDER_UPLOAD: "user",
-			});
+      const image = await imageService.saveUploadImage(req, {
+        FOLDER_UPLOAD: 'user',
+      });
       if (req.userData.member.image) {
-        await imageService.deleteImage(req.userData.member.image)
+        await imageService.deleteImage(req.userData.member.image);
       }
-      await dbModels.membersModel.update({
-        image: image
-      }, {
-        where: {
-          userId: req.userData.id
+      await dbModels.membersModel.update(
+        {
+          image: image,
+        },
+        {
+          where: {
+            userId: req.userData.id,
+          },
         }
-      })
+      );
       await transaction.commit();
       return res.status(STATUS_CODE[207].code).json({
         success: true,
         message: STATUS_CODE[207].message,
       });
-    } 
-    catch (error) {
+    } catch (error) {
       await transaction.rollback();
       return res.status(STATUS_CODE[500].code).json({
         success: false,
@@ -464,5 +469,7 @@ module.exports = {
         error: error.message,
       });
     }
-  }
+  },
+
+  ...memberController,
 };

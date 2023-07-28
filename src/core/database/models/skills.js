@@ -5,7 +5,6 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Skills.belongsToMany(models.members, {
         through: models.members_skills,
-        as: 'memberSkill',
         foreignKey: 'skillId',
       });
     }

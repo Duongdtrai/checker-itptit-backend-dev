@@ -51,7 +51,7 @@ module.exports = {
   getAll: async (req, res) => {
     try {
       const outstandingMembers = await dbModels.outstandingMembersModel.findAll(
-        { where: { isDeleted: false } }
+        { where: { isDeleted: false }, include: dbModels.membersModel }
       );
       return res.status(statusCode[200].code).json({
         outstandingMembers,

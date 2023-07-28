@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const dbModels = require('../../../utilities/dbModels');
-const statusCode = require('./member.constant');
+const statusCode = require('./user.constant');
 
 module.exports = {
   getAllMembers: async (req, res) => {
@@ -67,90 +67,6 @@ module.exports = {
     }
   },
 
-  addBand: async (req, res) => {
-    try {
-      const { memberId, bandId, periodId, role } = req.body;
-      const memberBand = await dbModels.memberBandsModel.create({
-        memberId,
-        bandId,
-        periodId,
-        role,
-      });
-      return res.status(statusCode[200].code).json({
-        memberBand,
-        success: true,
-        message: statusCode[200].message,
-      });
-    } catch (error) {
-      return res.status(statusCode[500].code).json({
-        success: false,
-        message: statusCode[500].message,
-        error: error.message,
-      });
-    }
-  },
-
-  deleteBand: async (req, res) => {
-    try {
-      const id = req.params.id;
-      await dbModels.memberBandsModel.update(
-        { idDeleted: true },
-        { where: { id } }
-      );
-      return res.status(statusCode[200].code).json({
-        success: true,
-        message: statusCode[200].message,
-      });
-    } catch (error) {
-      return res.status(statusCode[500].code).json({
-        success: false,
-        message: statusCode[500].message,
-        error: error.message,
-      });
-    }
-  },
-
-  addSkill: async (req, res) => {
-    try {
-      const { memberId, skillId } = req.body;
-      const memberSkill = await dbModels.memberSkillModel.create({
-        memberId,
-        skillId,
-      });
-      return res.status(statusCode[200].code).json({
-        memberSkill,
-        success: true,
-        message: statusCode[200].message,
-      });
-    } catch (error) {
-      return res.status(statusCode[500].code).json({
-        success: false,
-        message: statusCode[500].message,
-        error: error.message,
-      });
-    }
-  },
-
-  deleteSkill: async (req, res) => {
-    try {
-      const id = req.params.id;
-      await dbModels.memberSkillModel.update(
-        { idDeleted: true },
-        { where: { id } }
-      );
-      return res.status(statusCode[200].code).json({
-        success: true,
-        message: statusCode[200].message,
-      });
-    } catch (error) {
-      return res.status(statusCode[500].code).json({
-        success: false,
-        message: statusCode[500].message,
-        error: error.message,
-      });
-    }
-  },
-
   createMember: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
@@ -188,8 +104,10 @@ module.exports = {
 
   createComment: async (req, res) => {
     try {
-      const { memberId, newsId } = req.params;
+      const memberId = req.userData.member.id;
+      const { newsId } = req.params;
       const { content } = req.body;
+
       const comment = await dbModels.newsCommentsModel.create({
         memberId,
         newsId,
@@ -211,8 +129,23 @@ module.exports = {
 
   updateComment: async (req, res) => {
     try {
+      const memberId = req.userData.member.id;
       const { id } = req.params;
       const { content } = req.body;
+
+      const comment = await dbModels.newsCommentsModel.findByPk(id);
+      if (!comment)
+        return res.status(statusCode[400].code).json({
+          success: false,
+          message: statusCode[400].message,
+        });
+
+      if (memberId !== comment.userId)
+        return res.status(statusCode[403].code).json({
+          success: false,
+          message: statusCode[403].message,
+          error: error.message,
+        });
 
       await dbModels.newsCommentsModel.update({ content }, { where: { id } });
 
@@ -231,7 +164,22 @@ module.exports = {
 
   deleteComment: async (req, res) => {
     try {
+      const memberId = req.userData.member.id;
       const { id } = req.params;
+
+      const comment = await dbModels.newsCommentsModel.findByPk(id);
+      if (!comment)
+        return res.status(statusCode[400].code).json({
+          success: false,
+          message: statusCode[400].message,
+        });
+
+      if (memberId !== comment.userId)
+        return res.status(statusCode[403].code).json({
+          success: false,
+          message: statusCode[403].message,
+          error: error.message,
+        });
 
       await dbModels.newsCommentsModel.update(
         { isDeleted: true },

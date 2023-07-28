@@ -9,7 +9,7 @@ const _tableMembers = 'members';
 const {
   SYSTEM_ADMIN,
   USER_STATUS,
-} = require('../../../api/cms/user/user.constant');
+} = require('../../../api/user/user.constant');
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
@@ -26,6 +26,7 @@ module.exports = {
               bcrypt.genSaltSync(10)
             ),
             role: SYSTEM_ADMIN.ADMIN,
+            isActivated: USER_STATUS.ACTIVE,
             isDeleted: false,
             createdAt: new Date(),
             updatedAt: new Date(),

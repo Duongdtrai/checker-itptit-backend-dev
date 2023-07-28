@@ -2,7 +2,14 @@
 const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class NewsComments extends Model {
-    static associate(models) {}
+    static associate(models) {
+      NewsComments.belongsTo(models.members, {
+        foreignKey: 'memberId',
+      });
+      NewsComments.belongsTo(models.news, {
+        foreignKey: 'newsId',
+      });
+    }
   }
   NewsComments.init(
     {

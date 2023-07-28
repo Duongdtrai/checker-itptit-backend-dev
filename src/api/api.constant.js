@@ -3,10 +3,9 @@ const API = {
     MEMBER: {
       ['CREATE']: '/cms/members/create',
       ['GET_ALL']: '/cms/members/all',
-      ['ADD_BAND']: 'cms/members/bands/add',
-      ['DELETE_BAND']: 'cms/members/bands/delete/:id',
-      ['ADD_SKILL']: 'cms/members/skills/add',
-      ['DELETE_SKILL']: 'cms/members/skills/delete/:id',
+      ['CREATE_COMMENT']: '/cms/members/news/:newsId/comment',
+      ['DELETE_COMMENT']: '/cms/members/news/comment/delete/:id',
+      ['UPDATE_COMMENT']: '/cms/members/news/comment/update/:id',
     },
     BAND: {
       ['GET_ALL']: '/cms/bands/',
@@ -51,6 +50,7 @@ const API = {
       ['CREATE']: '/cms/news/create',
       ['UPDATE']: '/cms/news/update/:id',
       ['DELETE']: '/cms/news/delete/:id',
+      ['GET_COMMENTS']: '/cms/news/comments/:id',
     },
     USER: {
       ['LOGIN']: '/cms/user/login',
@@ -59,7 +59,7 @@ const API = {
       ['IMPORT']: '/cms/user/import',
       ['DETAIL_ADMIN']: '/cms/user/detail',
       ['CHANGE_INFO']: '/cms/user/change_info',
-      ['UPLOAD_IMAGE']: '/cms/user/upload_image'
+      ['UPLOAD_IMAGE']: '/cms/user/upload_image',
     },
   },
   MEMBER: {
@@ -71,7 +71,7 @@ const API = {
         '/landing-page/user/reset_password/:user_id/:unique_string',
       ['DETAIL_MEMBER']: '/landing-page/user/detail',
       ['CHANGE_INFO']: '/landing-page/user/change_info',
-      ['UPLOAD_IMAGE']: '/landing-page/user/upload_image'
+      ['UPLOAD_IMAGE']: '/landing-page/user/upload_image',
     },
   },
 };
