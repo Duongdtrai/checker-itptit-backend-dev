@@ -23,7 +23,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: 1,
       },
-      isActivated: DataTypes.BOOLEAN,
       isDeleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: 0,

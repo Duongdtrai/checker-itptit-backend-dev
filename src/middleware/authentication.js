@@ -37,7 +37,6 @@ module.exports = async (req, res, next) => {
       email: decoded.email ? decoded.email : '',
       token,
     };
-    console.log('req.userData', req.userData);
     next();
   } catch (error) {
     return res.status(STATUS_AUTHENTICATION[401].code).json({

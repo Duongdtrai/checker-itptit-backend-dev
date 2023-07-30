@@ -12,4 +12,9 @@ router.get(API.MEMBER.USER.RESET_PASSWORD, userController.resetPasswordLP);
 router.post(API.MEMBER.USER.RESET_PASSWORD, userController.resetPasswordPostLP);
 router.post(API.MEMBER.USER.UPLOAD_IMAGE, userController.uploadImage);
 
+// Quỳnh code
+router.get(API.MEMBER.USER.GET_ALL, userController.getAllMembers);
+router.post(API.MEMBER.USER.CREATE_COMMENT, userController.createComment);
+router.put(API.MEMBER.USER.DELETE_COMMENT, userController.deleteComment);
+router.put(API.MEMBER.USER.UPDATE_COMMENT, userController.updateComment);
 module.exports = router;

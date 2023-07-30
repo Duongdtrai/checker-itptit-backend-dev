@@ -23,9 +23,6 @@ module.exports = {
    * @returns {String}
    */
   uploadFile: ({ req, fileProperties, folder, isTemp = false }) => {
-    console.log("fileProperties", fileProperties)
-    console.log("folder", folder)
-
     return new Promise((resolve, reject) => {
       const file = multer({
         storage: multerS3({
@@ -33,7 +30,6 @@ module.exports = {
           bucket: bucketName,
           contentType: multerS3.AUTO_CONTENT_TYPE,
           metadata: function (req, file, cb) {
-            console.log("file", file)
             cb(null, {
               fieldName: file.fieldname,
             });
@@ -78,7 +74,6 @@ module.exports = {
       }).array(fileProperties.fileKey, 10);
 
       file(req, null, (err) => {
-        console.log("req.files", req.files, err)
         if (!err && req.files) {
           req.file = req.files;
           let pathImg = '';
@@ -91,7 +86,7 @@ module.exports = {
           }
           resolve(pathImg);
         } else {
-          console.log("lỗi")
+          console.log('error');
           reject(new Error(err)); // Throw an error
         }
       });
@@ -138,26 +133,26 @@ module.exports = {
   },
 
   /**
-	 * Delete file on S3
-	 * @param {String} key Path of the file
-	 *
-	 * @returns {Object}
-	 */
-	deleteObject: (key) => {
-		return new Promise((resolve, reject) => {
-			const params = {
-				Bucket: bucket,
-				Key: key
-			};
+   * Delete file on S3
+   * @param {String} key Path of the file
+   *
+   * @returns {Object}
+   */
+  deleteObject: (key) => {
+    return new Promise((resolve, reject) => {
+      const params = {
+        Bucket: bucket,
+        Key: key,
+      };
 
-			s3.deleteObject(params, (err, data) => {
-				if (err) {
-					reject(err);
-				} else {
-					console.log('s3 deleteObject: ', data);
-					resolve(data);
-				}
-			});
-		});
-	},
+      s3.deleteObject(params, (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log('s3 deleteObject: ', data);
+          resolve(data);
+        }
+      });
+    });
+  },
 };

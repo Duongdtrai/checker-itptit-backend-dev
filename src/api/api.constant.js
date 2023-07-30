@@ -1,12 +1,5 @@
 const API = {
   ADMIN: {
-    MEMBER: {
-      ['CREATE']: '/cms/members/create',
-      ['GET_ALL']: '/cms/members/all',
-      ['CREATE_COMMENT']: '/cms/members/news/:newsId/comment',
-      ['DELETE_COMMENT']: '/cms/members/news/comment/delete/:id',
-      ['UPDATE_COMMENT']: '/cms/members/news/comment/update/:id',
-    },
     BAND: {
       ['GET_ALL']: '/cms/bands/',
       ['GET_BY_ID']: '/cms/bands/:id',
@@ -60,6 +53,11 @@ const API = {
       ['DETAIL_ADMIN']: '/cms/user/detail',
       ['CHANGE_INFO']: '/cms/user/change_info',
       ['UPLOAD_IMAGE']: '/cms/user/upload_image',
+      // member
+      ['GET_ALL']: '/cms/members/all',
+      ['CREATE_COMMENT']: '/cms/members/news/:newsId/comment',
+      ['DELETE_COMMENT']: '/cms/members/news/comment/delete/:id',
+      ['UPDATE_COMMENT']: '/cms/members/news/comment/update/:id',
     },
   },
   MEMBER: {
@@ -72,6 +70,11 @@ const API = {
       ['DETAIL_MEMBER']: '/landing-page/user/detail',
       ['CHANGE_INFO']: '/landing-page/user/change_info',
       ['UPLOAD_IMAGE']: '/landing-page/user/upload_image',
+      // member
+      ['GET_ALL']: '/landing-page/members/all',
+      ['CREATE_COMMENT']: '/landing-page/members/news/:newsId/comment',
+      ['DELETE_COMMENT']: '/landing-page/members/news/comment/delete/:id',
+      ['UPDATE_COMMENT']: '/landing-page/members/news/comment/update/:id',
     },
   },
 };

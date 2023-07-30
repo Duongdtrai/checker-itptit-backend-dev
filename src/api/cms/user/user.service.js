@@ -1,6 +1,6 @@
-require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jsonwebtoken = require('jsonwebtoken');
+const moment = require('moment');
 
 module.exports = {
   /**
@@ -39,5 +39,29 @@ module.exports = {
         expiresIn: process.env.TOKEN_EXPIRES_IN,
       }
     );
+  },
+
+  formatDateToDDMMYYYYForPassword: (dateString) => {
+    const dateWithSlash = moment(dateString, 'D/M/YYYY', true);
+    if (dateWithSlash.isValid()) {
+      return dateWithSlash.format('DDMMYYYY');
+    }
+    const dateWithDash = moment(dateString, 'DD-MM-YYYY', true);
+    if (dateWithDash.isValid()) {
+      return dateWithDash.format('DDMMYYYY');
+    }
+    return null;
+  },
+
+  formatDateToDDMMYYYYForBirthday: (dateString) => {
+    const dateWithSlash = moment(dateString, 'D/M/YYYY', true);
+    if (dateWithSlash.isValid()) {
+      return dateWithSlash.format('YYYY-MM-DD HH:mm:ss');
+    }
+    const dateWithDash = moment(dateString, 'DD-MM-YYYY', true);
+    if (dateWithDash.isValid()) {
+      return dateWithDash.format('YYYY-MM-DD HH:mm:ss');
+    }
+    return null;
   },
 };

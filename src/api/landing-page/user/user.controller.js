@@ -11,13 +11,15 @@ const userService = require('./user.service');
 const sendEmail = require('../../../core/mailer/sendMail.service');
 const crypto = require('crypto');
 const moment = require('moment');
-const imageService = require("../../../utilities/image");
+const imageService = require('../../../utilities/image');
 
 module.exports = {
   getDetailMemberLP: async (req, res) => {
     try {
       if (req.userData.member.image) {
-        req.userData.member.image = imageService.getFullPathFile(req.userData.member.image)
+        req.userData.member.image = imageService.getFullPathFileGgStorage(
+          req.userData.member.image
+        );
       }
       return res.status(STATUS_CODE[204].code).json({
         success: false,
@@ -230,7 +232,7 @@ module.exports = {
       await validateEmail.validateAsync(email);
       const userExist = await dbModels.usersModel.findOne({
         where: {
-          email
+          email,
         },
       });
       if (!userExist) {
@@ -312,8 +314,7 @@ module.exports = {
                                                   password has been generated for you. To reset your password, click the
                                                   following link and follow the instructions.
                                               </p>
-                                              <a href="${process.env.BASE_URL
-        }/landing-page/user/reset_password/${userExist.id}/${token}"
+                                              <a href="${process.env.BASE_URL}/landing-page/user/reset_password/${userExist.id}/${token}"
                                                   style="background:#20e277;text-decoration:none !important; font-weight:500; margin-top:35px; color:#fff;text-transform:uppercase; font-size:14px;padding:10px 24px;display:inline-block;border-radius:50px;">Reset
                                                   Password</a>
                                           </td>
@@ -379,12 +380,13 @@ module.exports = {
           },
           transaction,
         });
-        const expiredDate = moment(userVerificationsExist.expiredAt).utcOffset('+07:00');
+        const expiredDate = moment(userVerificationsExist.expiredAt).utcOffset(
+          '+07:00'
+        );
         const currentDate = moment().utcOffset('+07:00');
         await transaction.commit();
         if (currentDate <= expiredDate) {
-          if (userVerificationsExist?.expiredAt)
-            res.render('reset-password');
+          if (userVerificationsExist?.expiredAt) res.render('reset-password');
         } else {
           res.render('error');
         }
@@ -441,29 +443,31 @@ module.exports = {
     }
   },
 
-  uploadImage: async  (req, res) => { 
+  uploadImage: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-			const image = await imageService.saveUploadImage(req, {
-				FOLDER_UPLOAD: "user",
-			});
+      const image = await imageService.saveUploadImageGgCloud(req, {
+        FOLDER_UPLOAD: 'user',
+      });
       if (req.userData.member.image) {
-        await imageService.deleteImage(req.userData.member.image)
+        await imageService.deleteImage(req.userData.member.image);
       }
-      await dbModels.membersModel.update({
-        image: image
-      }, {
-        where: {
-          userId: req.userData.id
+      await dbModels.membersModel.update(
+        {
+          image: image,
+        },
+        {
+          where: {
+            userId: req.userData.id,
+          },
         }
-      })
+      );
       await transaction.commit();
       return res.status(STATUS_CODE[207].code).json({
         success: true,
         message: STATUS_CODE[207].message,
       });
-    } 
-    catch (error) {
+    } catch (error) {
       await transaction.rollback();
       return res.status(STATUS_CODE[500].code).json({
         success: false,
@@ -471,5 +475,254 @@ module.exports = {
         error: error.message,
       });
     }
-  }
+  },
+
+  // Quỳnh code
+  getAllMembers: async (req, res) => {
+    try {
+      const sort = req.body?.sort;
+      const classes = req.body?.classes;
+      const teams = req.body?.teams;
+      const bands = req.body?.bands;
+      const periods = req.body?.periods;
+      const skills = req.body?.skills;
+
+      const whereConfig = {
+        where: {
+          ...(classes ? { class: { [Op.in]: classes } } : {}),
+          ...(teams ? { team: { [Op.in]: teams } } : {}),
+          isDeleted: false,
+        },
+      };
+      const sortConfig = sort
+        ? {
+            order: [
+              [sort.type === 'age' ? 'birthday' : 'fullName', sort.direction],
+            ],
+          }
+        : {};
+      const bandsConfig = {
+        where: {
+          ...(bands ? { id: { [Op.in]: bands } } : {}),
+          isDeleted: false,
+        },
+      };
+      const periodsConfig = {
+        where: {
+          ...(periods ? { id: { [Op.in]: periods } } : {}),
+          isDeleted: false,
+        },
+      };
+      const skillsConfig = {
+        where: {
+          ...(skills ? { id: { [Op.in]: skills } } : {}),
+          isDeleted: false,
+        },
+      };
+      const data = await dbModels.membersModel.findAll({
+        ...whereConfig,
+        ...sortConfig,
+        include: [
+          { model: dbModels.bandsModel, ...bandsConfig },
+          { model: dbModels.periodsModel, ...periodsConfig },
+          { model: dbModels.skillsModel, ...skillsConfig },
+        ],
+      });
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+        members: data,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  addBand: async (req, res) => {
+    try {
+      const { memberId, bandId, periodId, role } = req.body;
+      const memberBand = await dbModels.memberBandsModel.create({
+        memberId,
+        bandId,
+        periodId,
+        role,
+      });
+      return res.status(STATUS_CODE[200].code).json({
+        memberBand,
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  deleteBand: async (req, res) => {
+    try {
+      const id = req.params.id;
+      await dbModels.memberBandsModel.update(
+        { idDeleted: true },
+        { where: { id } }
+      );
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  addSkill: async (req, res) => {
+    try {
+      const { memberId, skillId } = req.body;
+      const memberSkill = await dbModels.memberSkillModel.create({
+        memberId,
+        skillId,
+      });
+      return res.status(STATUS_CODE[200].code).json({
+        memberSkill,
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  deleteSkill: async (req, res) => {
+    try {
+      const id = req.params.id;
+      await dbModels.memberSkillModel.update(
+        { idDeleted: true },
+        { where: { id } }
+      );
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  createMember: async (req, res) => {
+    const transaction = await itptit.db.sequelize.transaction();
+    try {
+      const newMember = await dbModels.membersModel.create(
+        {
+          fullName: 'Nguyen Tien Dat',
+          birthday: '2002-04-18',
+          image: 'abc',
+          hometown: 'Hanoi',
+          major: 'CNTT',
+          job: 'Fullstack',
+          class: 'D20',
+          team: 5,
+          achievements: 'Dep trai',
+          quote: 'Vo ban la vo toi?',
+          userId: 1,
+        },
+        transaction
+      );
+      await transaction.commit();
+      return res.status(201).json({
+        success: true,
+        message: 'Member created successfully',
+        member: newMember,
+      });
+    } catch (error) {
+      await transaction.rollback();
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  createComment: async (req, res) => {
+    try {
+      const { memberId, newsId } = req.params;
+      const { content } = req.body;
+      const comment = await dbModels.newsCommentsModel.create({
+        memberId,
+        newsId,
+        content,
+      });
+      return res.status(STATUS_CODE[200].code).json({
+        comment,
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  updateComment: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { content } = req.body;
+
+      await dbModels.newsCommentsModel.update({ content }, { where: { id } });
+
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  deleteComment: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await dbModels.newsCommentsModel.update(
+        { isDeleted: true },
+        { where: { id } }
+      );
+
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
 };

@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
       hometown: DataTypes.STRING,
       major: DataTypes.INTEGER,
       job: DataTypes.INTEGER,
-      class: DataTypes.STRING,
+      course: DataTypes.STRING,
       team: DataTypes.INTEGER,
       achievements: DataTypes.STRING,
       quote: DataTypes.STRING,
