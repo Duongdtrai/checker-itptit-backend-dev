@@ -444,7 +444,6 @@ module.exports = {
       if (req.userData.member.image) {
         await imageService.deleteImageGgCloud(req.userData.member.image);
       }
-      console.log('image', image);
       await dbModels.membersModel.update(
         {
           image: image,

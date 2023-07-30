@@ -14,4 +14,3 @@ node_modules/
 .idea
 package-lock.json
 .env
-app.env

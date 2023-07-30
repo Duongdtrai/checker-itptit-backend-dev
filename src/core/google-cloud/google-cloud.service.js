@@ -1,9 +1,12 @@
 const { Storage } = require('@google-cloud/storage');
 const multer = require('multer');
+const path = require('path');
+
+const keyFilePath = path.join(__dirname, '../../../gg-cloud-key.json');
 
 const storage = new Storage({
   projectId: process.env.GG_CLOUD_ID,
-  keyFilename: 'gg-cloud-key.json', // Đường dẫn đến tệp chứa thông tin xác thực
+  keyFilename: keyFilePath,
 });
 
 module.exports = {
