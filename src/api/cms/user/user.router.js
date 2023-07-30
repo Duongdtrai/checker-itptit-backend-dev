@@ -31,10 +31,9 @@ router.post(
 );
 
 router.post(API.ADMIN.USER.UPLOAD_IMAGE, userController.uploadImage);
-router.get(API.ADMIN.MEMBER.GET_ALL, userController.getAllMembers);
-router.post(API.ADMIN.MEMBER.CREATE, userController.createMember);
-router.post(API.ADMIN.MEMBER.CREATE_COMMENT, userController.createComment);
-router.put(API.ADMIN.MEMBER.DELETE_COMMENT, userController.deleteComment);
-router.put(API.ADMIN.MEMBER.UPDATE_COMMENT, userController.updateComment);
+router.get(API.ADMIN.USER.GET_ALL, userController.getAllMembers);
+router.post(API.ADMIN.USER.CREATE_COMMENT, userController.createComment);
+router.put(API.ADMIN.USER.DELETE_COMMENT, userController.deleteComment);
+router.put(API.ADMIN.USER.UPDATE_COMMENT, userController.updateComment);
 
 module.exports = router;

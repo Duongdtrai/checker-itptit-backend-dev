@@ -17,7 +17,6 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const { Op } = require('sequelize');
 const imageService = require('../../../utilities/image');
-const memberController = require('./member.controller');
 
 module.exports = {
   loginCMS: async (req, res) => {
@@ -79,7 +78,7 @@ module.exports = {
   getDetailAdmin: async (req, res) => {
     try {
       if (req.userData.member.image) {
-        req.userData.member.image = imageService.getFullPathFile(
+        req.userData.member.image = imageService.getFullPathFileGgStorage(
           req.userData.member.image
         );
       }
@@ -253,10 +252,7 @@ module.exports = {
         isFamous,
       } = req.body;
       await validateCmsCreateMember.validateAsync(req.body);
-      console.log(
-        'password',
-        await userService.genPassword(moment(birthday).format('DD-MM-YYYY'))
-      );
+
       const userExists = await dbModels.usersModel.findOne({
         where: {
           [Op.and]: {
@@ -327,7 +323,6 @@ module.exports = {
   },
 
   importUser: async (req, res) => {
-    console.log('Duong');
     const transaction = await itptit.db.sequelize.transaction();
     try {
       const resultFile = [];
@@ -344,83 +339,86 @@ module.exports = {
         });
       });
       for (let result of resultFile) {
-        console.log('result', result);
         const newData = {
           email: result[COLUMN_USER_IMPORT.email],
           username: result[COLUMN_USER_IMPORT.username],
-          birthday: moment(result[COLUMN_USER_IMPORT.password]).format(
-            'YYYY-MM-DD'
+          birthday: userService.formatDateToDDMMYYYYForBirthday(
+            result[COLUMN_USER_IMPORT.password]
           ),
           fullName: result[COLUMN_USER_IMPORT.fullName],
           course: result[COLUMN_USER_IMPORT.course],
-          team: result[COLUMN_USER_IMPORT.team],
+          team: Number(result[COLUMN_USER_IMPORT.team]),
         };
-        console.log('newData', newData);
-        // await validateCmsImportFile.validateAsync(newData);
-        // const userExist = await dbModels.usersModel.findOne({
-        //   where: {
-        //     [Op.or]: [
-        //       {
-        //         email: newData?.email,
-        //       },
-        //       {
-        //         username: newData?.username,
-        //       },
-        //     ],
-        //   },
-        // });
-        // if (userExist) {
-        //   await dbModels.usersModel.update(
-        //     {
-        //       email: newData?.email,
-        //       username: newData?.username,
-        //     },
-        //     {
-        //       where: {
-        //         id: userExist.id,
-        //       },
-        //       transaction,
-        //     }
-        //   );
-        //   await dbModels.membersModel.update(
-        //     {
-        //       birthday: newData?.birthday,
-        //       fullName: newData?.fullName,
-        //       gender: newData?.gender,
-        //     },
-        //     {
-        //       where: {
-        //         userId: userExist.id,
-        //       },
-        //       transaction,
-        //     }
-        //   );
-        // } else {
-        //   const newUser = await dbModels.usersModel.create(
-        //     {
-        //       email: newData?.email,
-        //       username: newData?.username,
-        //       password: await userService.genPassword(
-        //         moment(newData?.birthday).format('DDMMYYYY')
-        //       ),
-        //       role: SYSTEM_ADMIN.MEMBER,
-        //     },
-        //     {
-        //       transaction,
-        //     }
-        //   );
-        //   await dbModels.membersModel.create(
-        //     {
-        //       userId: newUser.id,
-        //       birthday: newData?.birthday,
-        //       fullName: newData?.fullName,
-        //       gender: newData?.gender,
-        //     },
-        //     {
-        //       transaction,
-        //     }
-        //   );
-        // }
+        await validateCmsImportFile.validateAsync(newData);
+        const userExist = await dbModels.usersModel.findOne({
+          where: {
+            [Op.or]: [
+              {
+                email: newData?.email.trim(),
+              },
+              {
+                username: newData?.username.trim(),
+              },
+            ],
+          },
+        });
+        if (userExist) {
+          await dbModels.usersModel.update(
+            {
+              email: newData?.email.toUpperCase(),
+              username: newData?.username.toLowerCase(),
+            },
+            {
+              where: {
+                id: userExist.id,
+              },
+              transaction,
+            }
+          );
+          await dbModels.membersModel.update(
+            {
+              birthday: newData?.birthday,
+              fullName: newData?.fullName,
+              course: newData?.course?.toLowerCase(),
+              team: newData?.team,
+            },
+            {
+              where: {
+                userId: userExist.id,
+              },
+              transaction,
+            }
+          );
+        } else {
+          const password = await userService.genPassword(
+            userService.formatDateToDDMMYYYYForPassword(
+              result[COLUMN_USER_IMPORT.password]
+            )
+          );
+          const newUser = await dbModels.usersModel.create(
+            {
+              email: newData?.email,
+              username: newData?.username,
+              password: password,
+              role: SYSTEM_ADMIN.MEMBER,
+            },
+            {
+              transaction,
+            }
+          );
+          await dbModels.membersModel.create(
+            {
+              userId: newUser.id,
+              birthday: newData?.birthday,
+              fullName: newData?.fullName,
+              course: newData?.course?.toLowerCase(),
+              team: newData?.team,
+            },
+            {
+              transaction,
+            }
+          );
+        }
       }
       await transaction.commit();
       return res.status(STATUS_CODE[203].code).json({
@@ -440,12 +438,13 @@ module.exports = {
   uploadImage: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-      const image = await imageService.saveUploadImage(req, {
+      const image = await imageService.saveUploadImageGgCloud(req, {
         FOLDER_UPLOAD: 'user',
       });
       if (req.userData.member.image) {
-        await imageService.deleteImage(req.userData.member.image);
+        await imageService.deleteImageGgCloud(req.userData.member.image);
       }
+      console.log('image', image);
       await dbModels.membersModel.update(
         {
           image: image,
@@ -460,6 +459,7 @@ module.exports = {
       return res.status(STATUS_CODE[207].code).json({
         success: true,
         message: STATUS_CODE[207].message,
+        image: imageService.getFullPathFileGgStorage(image),
       });
     } catch (error) {
       await transaction.rollback();
@@ -471,5 +471,164 @@ module.exports = {
     }
   },
 
-  ...memberController,
+  getAllMembers: async (req, res) => {
+    try {
+      const sort = req.body?.sort;
+      const course = req.body?.course;
+      const teams = req.body?.teams;
+      const bands = req.body?.bands;
+      const periods = req.body?.periods;
+      const skills = req.body?.skills;
+
+      const whereConfig = {
+        where: {
+          ...(course ? { course: { [Op.in]: course } } : {}),
+          ...(teams ? { team: { [Op.in]: teams } } : {}),
+          isDeleted: false,
+        },
+      };
+      const sortConfig = sort
+        ? {
+            order: [
+              [sort.type === 'age' ? 'birthday' : 'fullName', sort.direction],
+            ],
+          }
+        : {};
+      const bandsConfig = {
+        where: {
+          ...(bands ? { id: { [Op.in]: bands } } : {}),
+          isDeleted: false,
+        },
+      };
+      const periodsConfig = {
+        where: {
+          ...(periods ? { id: { [Op.in]: periods } } : {}),
+          isDeleted: false,
+        },
+      };
+      const skillsConfig = {
+        where: {
+          ...(skills ? { id: { [Op.in]: skills } } : {}),
+          isDeleted: false,
+        },
+      };
+      const data = await dbModels.membersModel.findAll({
+        ...whereConfig,
+        ...sortConfig,
+        include: [
+          { model: dbModels.bandsModel, ...bandsConfig },
+          { model: dbModels.periodsModel, ...periodsConfig },
+          { model: dbModels.skillsModel, ...skillsConfig },
+        ],
+      });
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+        members: data,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  createComment: async (req, res) => {
+    try {
+      const memberId = req.userData.member.id;
+      const { newsId } = req.params;
+      const { content } = req.body;
+
+      const comment = await dbModels.newsCommentsModel.create({
+        memberId,
+        newsId,
+        content,
+      });
+      return res.status(STATUS_CODE[200].code).json({
+        comment,
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  updateComment: async (req, res) => {
+    try {
+      const memberId = req.userData.member.id;
+      const { id } = req.params;
+      const { content } = req.body;
+
+      const comment = await dbModels.newsCommentsModel.findByPk(id);
+      if (!comment)
+        return res.status(STATUS_CODE[400].code).json({
+          success: false,
+          message: STATUS_CODE[400].message,
+        });
+
+      if (memberId !== comment.userId)
+        return res.status(STATUS_CODE[403].code).json({
+          success: false,
+          message: STATUS_CODE[403].message,
+          error: error.message,
+        });
+
+      await dbModels.newsCommentsModel.update({ content }, { where: { id } });
+
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
+
+  deleteComment: async (req, res) => {
+    try {
+      const memberId = req.userData.member.id;
+      const { id } = req.params;
+
+      const comment = await dbModels.newsCommentsModel.findByPk(id);
+      if (!comment)
+        return res.status(STATUS_CODE[400].code).json({
+          success: false,
+          message: STATUS_CODE[400].message,
+        });
+
+      if (memberId !== comment.userId)
+        return res.status(STATUS_CODE[403].code).json({
+          success: false,
+          message: STATUS_CODE[403].message,
+          error: error.message,
+        });
+
+      await dbModels.newsCommentsModel.update(
+        { isDeleted: true },
+        { where: { id } }
+      );
+
+      return res.status(STATUS_CODE[200].code).json({
+        success: true,
+        message: STATUS_CODE[200].message,
+      });
+    } catch (error) {
+      return res.status(STATUS_CODE[500].code).json({
+        success: false,
+        message: STATUS_CODE[500].message,
+        error: error.message,
+      });
+    }
+  },
 };

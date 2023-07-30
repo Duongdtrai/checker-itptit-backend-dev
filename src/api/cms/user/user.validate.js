@@ -11,10 +11,11 @@ const validateCmsImportFile = Joi.object({
   email: Joi.string()
     .pattern(/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/)
     .required(),
+  fullName: Joi.string().required(),
   username: Joi.string().required(),
   birthday: Joi.string().required(),
-  fullName: Joi.string().required(),
-  gender: Joi.number().valid(1, 2).required(),
+  course: Joi.string().required(),
+  team: Joi.number().valid(1, 2, 3, 4, 5).required(),
 });
 
 const validateChangePassword = Joi.object({

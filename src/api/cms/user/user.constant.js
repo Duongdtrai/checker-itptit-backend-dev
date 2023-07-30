@@ -95,12 +95,12 @@ const USER_STATUS = {
 };
 
 const COLUMN_USER_IMPORT = {
-  email: 'Email',
-  username: 'Username (Mã sinh viên)',
-  password: 'Ngày sinh (8 kí tự)',
-  course: 'Khóa',
+  username: 'Username (Ma sinh vien)',
+  password: 'Password (Ngay sinh 8 ky tu)',
   fullName: 'Fullname',
-  team: 'Team'
+  course: 'Khoa (course)',
+  team: 'Team',
+  email: 'Email',
 };
 
 module.exports = {
