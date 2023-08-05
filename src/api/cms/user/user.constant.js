@@ -34,6 +34,14 @@ const STATUS_CODE = {
     code: 200,
     message: 'Upload image successfully',
   },
+  208: {
+    code: 200,
+    message: 'Get all member successfully',
+  },
+  209: {
+    code: 200,
+    message: 'Get all member outstanding successfully',
+  },
   401: {
     code: 401,
     message: 'Role do not exist!',

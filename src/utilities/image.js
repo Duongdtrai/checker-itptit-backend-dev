@@ -62,7 +62,7 @@ module.exports = {
   getFullPathFile,
   getFullPathFileGgStorage,
 
-  saveUploadImageGgCloud: async (req, fileProperties) => {
+  saveUploadImageGgCloud: async (req, fileProperties, resize) => {
     try {
       return await ggCloud.uploadFile({
         req,
@@ -83,7 +83,8 @@ module.exports = {
               ? fileProperties.FOLDER_UPLOAD
               : BINARY_FILE.FOLDER_UPLOAD
           ].thumbnail,
-        isTemp: true,
+        resize,
+        isTemp: false,
       });
     } catch (err) {
       throw err;

@@ -2,32 +2,20 @@ const express = require('express');
 const router = express.Router();
 
 const routerUser = require('./user/user.router');
-const routerBand = require('./band/band.router');
 const routerNews = require('./news/news.router');
-const routerOutstandingMember = require('./outstanding-member/outstanding-member.router');
-const routerPeriod = require('./period/period.router');
 const routerSkill = require('./skill/skill.router');
-const routerThumbnail = require('./thumbnail/thumbnail.router');
+const routerBand = require('./band/band.router');
 
 /** router User */
 router.use(routerUser);
 
-/** router Band */
-router.use(routerBand);
-
 /** router News */
 router.use(routerNews);
 
-/** router Outstanding Member */
-router.use(routerOutstandingMember);
-
-/** router Period */
-router.use(routerPeriod);
-
-/** router Period */
+/** router skill */
 router.use(routerSkill);
 
-/** router Thumbnail */
-router.use(routerThumbnail);
+/** router band */
+router.use(routerBand);
 
 module.exports = router;

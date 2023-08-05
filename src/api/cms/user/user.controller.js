@@ -19,62 +19,6 @@ const { Op } = require('sequelize');
 const imageService = require('../../../utilities/image');
 
 module.exports = {
-  loginCMS: async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      await validateCmsAuthenticationSchema.validateAsync(req.body);
-
-      const dataUser = await dbModels.usersModel.findOne({
-        attributes: ['email', 'password', 'id', 'role'],
-        where: {
-          username: username,
-          role: SYSTEM_ADMIN.ADMIN,
-          isDeleted: false,
-        },
-      });
-
-      if (!dataUser) {
-        return res.status(STATUS_CODE[412].code).json({
-          success: false,
-          message: STATUS_CODE[412].message,
-        });
-      }
-
-      const isPasswordCorrect = await userService.comparePassword(
-        password,
-        dataUser.password
-      );
-
-      // handle check that password is correct or not
-      if (!isPasswordCorrect) {
-        return res.status(STATUS_CODE[409].code).json({
-          success: false,
-          message: STATUS_CODE[409].message,
-        });
-      }
-      // generate jwt web token
-      const token = userService.generateToken({
-        userId: dataUser.id,
-        email: dataUser.email,
-      });
-      return res.status(STATUS_CODE[200].code).json({
-        success: true,
-        message: STATUS_CODE[200].message,
-        data: {
-          token: token,
-          userId: dataUser.id,
-          role: dataUser.role,
-        },
-      });
-    } catch (error) {
-      return res.status(STATUS_CODE[500].code).json({
-        success: false,
-        message: STATUS_CODE[500].message,
-        error: error.message,
-      });
-    }
-  },
-
   getDetailAdmin: async (req, res) => {
     try {
       if (req.userData.member.image) {
@@ -157,12 +101,12 @@ module.exports = {
     const transaction = await itptit.db.sequelize.transaction();
     try {
       const {
+        userId,
         email,
         username,
         fullName,
         gender,
         birthday,
-        image,
         hometown,
         major,
         job,
@@ -173,9 +117,21 @@ module.exports = {
         hobby,
         description,
         isFamous,
+        listSkills,
+        listBands,
+        timeOutstanding,
+        checkOutstanding,
       } = req.body;
       await validateChangeUser.validateAsync(req.body);
-      const userId = req.userData.id;
+      const memberExist = await dbModels.membersModel.findOne({
+        attributes: ['userId', 'id'],
+        where: {
+          userId,
+        },
+      });
+      if (!memberExist) {
+        throw new Error('User is not exist');
+      }
       await dbModels.usersModel.update(
         {
           email,
@@ -195,7 +151,6 @@ module.exports = {
           fullName,
           gender,
           birthday,
-          image,
           hometown,
           major,
           job,
@@ -214,6 +169,22 @@ module.exports = {
           },
           transaction,
         }
+      );
+      if (listSkills?.length > 0) {
+        await userService.updateSkills(listSkills, memberExist.id, transaction);
+      }
+      if (listBands?.length > 0) {
+        await userService.updateBandAndRole(
+          listBands,
+          memberExist.id,
+          transaction
+        );
+      }
+      await userService.updateOutstanding(
+        checkOutstanding,
+        timeOutstanding,
+        memberExist.id,
+        transaction
       );
       await transaction.commit();
       return res.status(STATUS_CODE[205].code).json({
@@ -239,7 +210,6 @@ module.exports = {
         fullName,
         gender,
         birthday,
-        image,
         hometown,
         major,
         job,
@@ -250,6 +220,9 @@ module.exports = {
         hobby,
         description,
         isFamous,
+        listSkills,
+        listBands,
+        timeOutstanding,
       } = req.body;
       await validateCmsCreateMember.validateAsync(req.body);
 
@@ -287,13 +260,12 @@ module.exports = {
           transaction,
         }
       );
-      await dbModels.membersModel.create(
+      const newMember = await dbModels.membersModel.create(
         {
           userId: newUser.id,
           fullName,
           gender,
           birthday,
-          image,
           hometown,
           major,
           job,
@@ -302,11 +274,30 @@ module.exports = {
           achievements,
           quote,
           isFamous,
+          hobby,
+          description,
         },
         {
           transaction,
         }
       );
+      if (listSkills?.length > 0) {
+        await userService.updateSkills(listSkills, newMember.id, transaction);
+      }
+      if (listBands?.length > 0) {
+        await userService.updateBandAndRole(
+          listBands,
+          newMember.id,
+          transaction
+        );
+      }
+      if (0 < timeOutstanding && timeOutstanding <= 12) {
+        await userService.updateOutstanding(
+          timeOutstanding,
+          memberExist.id,
+          transaction
+        );
+      }
       await transaction.commit();
       return res.status(STATUS_CODE[202].code).json({
         success: true,
@@ -438,22 +429,29 @@ module.exports = {
   uploadImage: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-      const image = await imageService.saveUploadImageGgCloud(req, {
-        FOLDER_UPLOAD: 'user',
-      });
-      if (req.userData.member.image) {
-        await imageService.deleteImageGgCloud(req.userData.member.image);
+      const { width, height, typeUpload } = req.query;
+      let resize = false;
+      if (Number(width) && Number(height)) {
+        resize = {
+          width,
+          height,
+        };
       }
-      await dbModels.membersModel.update(
+      const image = await imageService.saveUploadImageGgCloud(
+        req,
         {
-          image: image,
+          FOLDER_UPLOAD: 'user',
         },
-        {
-          where: {
-            userId: req.userData.id,
-          },
-        }
+        resize
       );
+
+      if (typeUpload === 'image') {
+        await userService.uploadImageData(req, image, transaction);
+      } else if (typeUpload === 'avatar') {
+        await userService.uploadAvatarData(req, image, transaction);
+      } else {
+        throw new Error('Please choose type upload image');
+      }
       await transaction.commit();
       return res.status(STATUS_CODE[207].code).json({
         success: true,
@@ -472,58 +470,127 @@ module.exports = {
 
   getAllMembers: async (req, res) => {
     try {
-      const sort = req.body?.sort;
-      const course = req.body?.course;
-      const teams = req.body?.teams;
-      const bands = req.body?.bands;
-      const periods = req.body?.periods;
-      const skills = req.body?.skills;
+      const { page, size } = req.query;
+      let offset = 0;
+      let limit = 10;
+      if (page && size) {
+        offset = (Number(page) - 1) * Number(size);
+      }
+      if (size) {
+        limit = Number(size);
+      }
+      const { type_sort, courses, teams, bands, skills, roles } = req.body;
 
+      /** search for course or teams */
       const whereConfig = {
         where: {
-          ...(course ? { course: { [Op.in]: course } } : {}),
+          ...(courses ? { course: { [Op.in]: courses } } : {}),
           ...(teams ? { team: { [Op.in]: teams } } : {}),
           isDeleted: false,
         },
       };
-      const sortConfig = sort
-        ? {
-            order: [
-              [sort.type === 'age' ? 'birthday' : 'fullName', sort.direction],
-            ],
-          }
-        : {};
+
+      /** search for bands or team project */
       const bandsConfig = {
         where: {
-          ...(bands ? { id: { [Op.in]: bands } } : {}),
+          ...(bands?.length > 0 ? { id: { [Op.in]: bands } } : {}),
           isDeleted: false,
         },
       };
-      const periodsConfig = {
-        where: {
-          ...(periods ? { id: { [Op.in]: periods } } : {}),
-          isDeleted: false,
-        },
-      };
+
+      /** search for skills */
       const skillsConfig = {
         where: {
           ...(skills ? { id: { [Op.in]: skills } } : {}),
           isDeleted: false,
         },
       };
-      const data = await dbModels.membersModel.findAll({
-        ...whereConfig,
-        ...sortConfig,
-        include: [
-          { model: dbModels.bandsModel, ...bandsConfig },
-          { model: dbModels.periodsModel, ...periodsConfig },
-          { model: dbModels.skillsModel, ...skillsConfig },
+
+      /** search for chức vụ */
+      const roleConfig = {
+        where: {
+          ...(roles?.length > 0 ? { role: { [Op.in]: roles } } : {}),
+          isDeleted: false,
+        },
+      };
+
+      const data = await dbModels.membersModel.findAndCountAll({
+        offset,
+        limit,
+        attributes: [
+          'id',
+          'fullName',
+          'birthday',
+          'image',
+          'avatar',
+          'hometown',
+          'major',
+          'job',
+          'course',
+          'team',
+          'achievements',
+          'quote',
+          'hobby',
+          'description',
+          'gender',
+          'isFamous',
+          'createdAt',
+          'updatedAt',
         ],
+        include: [
+          {
+            attributes: ['id', 'name', 'priority', 'createdAt', 'updatedAt'],
+            model: dbModels.bandsModel,
+            through: {
+              attributes: [
+                'bandId',
+                'memberId',
+                'periodId',
+                'createdAt',
+                'updatedAt',
+              ],
+              model: dbModels.memberBandsModel,
+              ...roleConfig,
+            },
+            ...bandsConfig,
+          },
+          {
+            attributes: ['id', 'name', 'createdAt', 'updatedAt'],
+            model: dbModels.skillsModel,
+            through: {
+              attributes: ['memberId', 'skillId', 'createdAt', 'updatedAt'],
+              model: dbModels.memberSkillModel,
+            },
+            ...skillsConfig,
+          },
+          {
+            model: dbModels.usersModel,
+            attributes: ['id', 'email', 'username', 'createdAt', 'updatedAt'],
+          },
+        ],
+        ...whereConfig,
+        order: type_sort?.length === 2 ? [type_sort] : [['createdAt', 'DESC']],
       });
-      return res.status(STATUS_CODE[200].code).json({
+
+      data.rows.forEach((value, index) => {
+        if (value?.image) {
+          data.rows[index].image = imageService.getFullPathFileGgStorage(
+            value?.image
+          );
+        }
+        if (value?.avatar) {
+          data.rows[index].avatar = imageService.getFullPathFileGgStorage(
+            value?.avatar
+          );
+        }
+      });
+      return res.status(STATUS_CODE[208].code).json({
         success: true,
-        message: STATUS_CODE[200].message,
-        members: data,
+        message: STATUS_CODE[208].message,
+        data: {
+          count: data?.rows?.length,
+          rows: data?.rows,
+        },
       });
     } catch (error) {
       return res.status(STATUS_CODE[500].code).json({
@@ -534,93 +601,77 @@ module.exports = {
     }
   },
 
-  createComment: async (req, res) => {
+  getAllOutStanding: async (req, res) => {
     try {
-      const memberId = req.userData.member.id;
-      const { newsId } = req.params;
-      const { content } = req.body;
+      const { page, size, startedAt, endedAt } = req.query;
+      let offset = 0;
+      let limit = 10;
+      if (page && size) {
+        offset = (Number(page) - 1) * Number(size);
+      }
+      if (size) {
+        limit = Number(size);
+      }
+      const startDate = startedAt
+        ? moment(startedAt).toDate()
+        : moment(new Date('1970-01-01')).toDate();
+      const endDate = endedAt
+        ? moment(endedAt).toDate()
+        : moment(new Date()).toDate();
 
-      const comment = await dbModels.newsCommentsModel.create({
-        memberId,
-        newsId,
-        content,
+      if (!startedAt && !endedAt) {
+        throw new Error('Please choose date');
+      }
+
+      let outStandingData =
+        await dbModels.outstandingMembersModel.findAndCountAll({
+          offset,
+          limit,
+          attributes: ['id', 'time', 'createdAt', 'updatedAt'],
+          include: [
+            {
+              model: dbModels.membersModel,
+              attributes: [
+                'id',
+                'fullName',
+                'birthday',
+                'image',
+                'hometown',
+                'major',
+                'job',
+                'course',
+                'team',
+                'achievements',
+                'quote',
+                'hobby',
+                'description',
+                'gender',
+                'createdAt',
+                'updatedAt',
+              ],
+            },
+          ],
+          where: {
+            time: {
+              [Op.gte]: startDate,
+              [Op.lte]: endDate,
+            },
+            isDeleted: false,
+          },
+          order: [['createdAt', 'DESC']],
+        });
+
+      outStandingData.rows.forEach((value, index) => {
+        if (value?.member?.avatar) {
+          data.rows[index].member.avatar =
+            imageService.getFullPathFileGgStorage(value?.member?.avatar);
+        }
       });
-      return res.status(STATUS_CODE[200].code).json({
-        comment,
+
+      return res.status(STATUS_CODE[209].code).json({
         success: true,
-        message: STATUS_CODE[200].message,
-      });
-    } catch (error) {
-      return res.status(STATUS_CODE[500].code).json({
-        success: false,
-        message: STATUS_CODE[500].message,
-        error: error.message,
-      });
-    }
-  },
-
-  updateComment: async (req, res) => {
-    try {
-      const memberId = req.userData.member.id;
-      const { id } = req.params;
-      const { content } = req.body;
-
-      const comment = await dbModels.newsCommentsModel.findByPk(id);
-      if (!comment)
-        return res.status(STATUS_CODE[400].code).json({
-          success: false,
-          message: STATUS_CODE[400].message,
-        });
-
-      if (memberId !== comment.userId)
-        return res.status(STATUS_CODE[403].code).json({
-          success: false,
-          message: STATUS_CODE[403].message,
-          error: error.message,
-        });
-
-      await dbModels.newsCommentsModel.update({ content }, { where: { id } });
-
-      return res.status(STATUS_CODE[200].code).json({
-        success: true,
-        message: STATUS_CODE[200].message,
-      });
-    } catch (error) {
-      return res.status(STATUS_CODE[500].code).json({
-        success: false,
-        message: STATUS_CODE[500].message,
-        error: error.message,
-      });
-    }
-  },
-
-  deleteComment: async (req, res) => {
-    try {
-      const memberId = req.userData.member.id;
-      const { id } = req.params;
-
-      const comment = await dbModels.newsCommentsModel.findByPk(id);
-      if (!comment)
-        return res.status(STATUS_CODE[400].code).json({
-          success: false,
-          message: STATUS_CODE[400].message,
-        });
-
-      if (memberId !== comment.userId)
-        return res.status(STATUS_CODE[403].code).json({
-          success: false,
-          message: STATUS_CODE[403].message,
-          error: error.message,
-        });
-
-      await dbModels.newsCommentsModel.update(
-        { isDeleted: true },
-        { where: { id } }
-      );
-
-      return res.status(STATUS_CODE[200].code).json({
-        success: true,
-        message: STATUS_CODE[200].message,
+        message: STATUS_CODE[209].message,
+        data: outStandingData,
       });
     } catch (error) {
       return res.status(STATUS_CODE[500].code).json({

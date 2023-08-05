@@ -1,6 +1,7 @@
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jsonwebtoken = require('jsonwebtoken');
+const dbModels = require('../../../utilities/dbModels');
 
 module.exports = {
   /**
@@ -36,8 +37,48 @@ module.exports = {
       },
       process.env.TOKEN_PRIVATE_KEY,
       {
-        expiresIn: process.env.TOKEN_EXPIRES_IN,
+        expiresIn: Number(process.env.TOKEN_EXPIRES_IN) * 1000,
       }
     );
+  },
+
+  updateSkills: async (listSkills, memberId, transaction) => {
+    const memberSkillExist = await dbModels.memberSkillModel.count({
+      attributes: ['id', 'memberId', 'skillId'],
+      where: {
+        isDeleted: false,
+        memberId,
+      },
+    });
+    if (memberSkillExist > 0) {
+      await dbModels.memberSkillModel.destroy({
+        where: {
+          memberId,
+        },
+        transaction,
+      });
+    }
+    for (let skill of listSkills) {
+      const skillExists = await dbModels.skillsModel.findOne({
+        attributes: ['id'],
+        where: {
+          isDeleted: false,
+          id: skill,
+        },
+      });
+      if (!skillExists) {
+        throw new Error('Skill does not exist');
+      }
+
+      await dbModels.memberSkillModel.create(
+        {
+          memberId,
+          skillId: skill,
+        },
+        {
+          transaction,
+        }
+      );
+    }
   },
 };

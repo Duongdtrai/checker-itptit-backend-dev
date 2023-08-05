@@ -1,4 +1,3 @@
-require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const {
   EXCEPTION_API,
@@ -25,6 +24,7 @@ module.exports = async (req, res, next) => {
         message: STATUS_AUTHENTICATION[401].message,
       });
     }
+
     const decoded = jwt.verify(token, process.env.TOKEN_PRIVATE_KEY);
     if (!decoded || !decoded.userId) {
       return res.status(STATUS_AUTHENTICATION[401].code).json({

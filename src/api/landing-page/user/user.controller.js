@@ -12,6 +12,7 @@ const sendEmail = require('../../../core/mailer/sendMail.service');
 const crypto = require('crypto');
 const moment = require('moment');
 const imageService = require('../../../utilities/image');
+const { Op } = require('sequelize');
 
 module.exports = {
   getDetailMemberLP: async (req, res) => {
@@ -19,6 +20,11 @@ module.exports = {
       if (req.userData.member.image) {
         req.userData.member.image = imageService.getFullPathFileGgStorage(
           req.userData.member.image
+        );
+      }
+      if (req.userData.member.avatar) {
+        req.userData.member.avatar = imageService.getFullPathFileGgStorage(
+          req.userData.member.avatar
         );
       }
       return res.status(STATUS_CODE[204].code).json({
@@ -44,7 +50,7 @@ module.exports = {
         attributes: ['email', 'password', 'id', 'role'],
         where: {
           username: username,
-          role: SYSTEM_ADMIN.MEMBER,
+          // role: SYSTEM_ADMIN.MEMBER,
         },
       });
 
@@ -157,7 +163,6 @@ module.exports = {
         fullName,
         gender,
         birthday,
-        image,
         hometown,
         major,
         job,
@@ -167,7 +172,7 @@ module.exports = {
         quote,
         hobby,
         description,
-        isFamous,
+        listSkills,
       } = req.body;
       await validateChangeUser.validateAsync(req.body);
       const userId = req.userData.id;
@@ -190,7 +195,6 @@ module.exports = {
           fullName,
           gender,
           birthday,
-          image,
           hometown,
           major,
           job,
@@ -200,7 +204,6 @@ module.exports = {
           quote,
           hobby,
           description,
-          isFamous,
         },
         {
           where: {
@@ -210,6 +213,13 @@ module.exports = {
           transaction,
         }
       );
+      if (listSkills?.length > 0) {
+        await userService.updateSkills(
+          listSkills,
+          req.userData.member.id,
+          transaction
+        );
+      }
       await transaction.commit();
       return res.status(STATUS_CODE[205].code).json({
         success: true,
@@ -446,9 +456,21 @@ module.exports = {
   uploadImage: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-      const image = await imageService.saveUploadImageGgCloud(req, {
-        FOLDER_UPLOAD: 'user',
-      });
+      const { width, height } = req.query;
+      let resize = false;
+      if (Number(width) && Number(height)) {
+        resize = {
+          width,
+          height,
+        };
+      }
+      const image = await imageService.saveUploadImageGgCloud(
+        req,
+        {
+          FOLDER_UPLOAD: 'user',
+        },
+        resize
+      );
       if (req.userData.member.image) {
         await imageService.deleteImage(req.userData.member.image);
       }
@@ -477,61 +499,117 @@ module.exports = {
     }
   },
 
-  // Quỳnh code
   getAllMembers: async (req, res) => {
     try {
-      const sort = req.body?.sort;
-      const classes = req.body?.classes;
-      const teams = req.body?.teams;
-      const bands = req.body?.bands;
-      const periods = req.body?.periods;
-      const skills = req.body?.skills;
+      const { page, size } = req.query;
+      let offset = 0;
+      let limit = 10;
+      if (page && size) {
+        offset = (Number(page) - 1) * Number(size);
+      }
+      if (size) {
+        limit = Number(size);
+      }
+      const { type_sort, courses, teams, bands, skills, roles } = req.body;
 
+      /** search for course or teams */
       const whereConfig = {
         where: {
-          ...(classes ? { class: { [Op.in]: classes } } : {}),
+          ...(courses ? { course: { [Op.in]: courses } } : {}),
           ...(teams ? { team: { [Op.in]: teams } } : {}),
           isDeleted: false,
         },
       };
-      const sortConfig = sort
-        ? {
-            order: [
-              [sort.type === 'age' ? 'birthday' : 'fullName', sort.direction],
-            ],
-          }
-        : {};
+
+      /** search for bands or team project */
       const bandsConfig = {
         where: {
-          ...(bands ? { id: { [Op.in]: bands } } : {}),
+          ...(bands?.length > 0 ? { id: { [Op.in]: bands } } : {}),
           isDeleted: false,
         },
       };
-      const periodsConfig = {
-        where: {
-          ...(periods ? { id: { [Op.in]: periods } } : {}),
-          isDeleted: false,
-        },
-      };
+
+      /** search for skills */
       const skillsConfig = {
         where: {
           ...(skills ? { id: { [Op.in]: skills } } : {}),
           isDeleted: false,
         },
       };
-      const data = await dbModels.membersModel.findAll({
-        ...whereConfig,
-        ...sortConfig,
-        include: [
-          { model: dbModels.bandsModel, ...bandsConfig },
-          { model: dbModels.periodsModel, ...periodsConfig },
-          { model: dbModels.skillsModel, ...skillsConfig },
+
+      /** search for chức vụ */
+      const roleConfig = {
+        where: {
+          ...(roles?.length > 0 ? { role: { [Op.in]: roles } } : {}),
+          isDeleted: false,
+        },
+      };
+
+      const data = await dbModels.membersModel.findAndCountAll({
+        offset,
+        limit,
+        attributes: [
+          'id',
+          'fullName',
+          'birthday',
+          'image',
+          'avatar',
+          'hometown',
+          'major',
+          'job',
+          'course',
+          'team',
+          'achievements',
+          'quote',
+          'hobby',
+          'description',
+          'gender',
+          'isFamous',
+          'createdAt',
+          'updatedAt',
         ],
+        include: [
+          {
+            attributes: ['id', 'name', 'priority', 'createdAt', 'updatedAt'],
+            model: dbModels.bandsModel,
+            through: {
+              attributes: [
+                'bandId',
+                'memberId',
+                'periodId',
+                'createdAt',
+                'updatedAt',
+              ],
+              model: dbModels.memberBandsModel,
+              ...roleConfig,
+            },
+            ...bandsConfig,
+          },
+          {
+            attributes: ['id', 'name', 'createdAt', 'updatedAt'],
+            model: dbModels.skillsModel,
+            through: {
+              attributes: ['memberId', 'skillId', 'createdAt', 'updatedAt'],
+              model: dbModels.memberSkillModel,
+            },
+            ...skillsConfig,
+          },
+          {
+            model: dbModels.usersModel,
+            attributes: ['id', 'email', 'username', 'createdAt', 'updatedAt'],
+          },
+        ],
+        ...whereConfig,
+        order: type_sort?.length === 2 ? [type_sort] : [['createdAt', 'DESC']],
       });
-      return res.status(STATUS_CODE[200].code).json({
+
+      return res.status(STATUS_CODE[208].code).json({
         success: true,
-        message: STATUS_CODE[200].message,
-        members: data,
+        message: STATUS_CODE[208].message,
+        data: {
+          count: data?.rows?.length,
+          rows: data?.rows,
+        },
       });
     } catch (error) {
       return res.status(STATUS_CODE[500].code).json({
@@ -569,7 +647,7 @@ module.exports = {
     try {
       const id = req.params.id;
       await dbModels.memberBandsModel.update(
-        { idDeleted: true },
+        { isDeleted: true },
         { where: { id } }
       );
       return res.status(STATUS_CODE[200].code).json({
@@ -610,7 +688,7 @@ module.exports = {
     try {
       const id = req.params.id;
       await dbModels.memberSkillModel.update(
-        { idDeleted: true },
+        { isDeleted: true },
         { where: { id } }
       );
       return res.status(STATUS_CODE[200].code).json({
@@ -661,61 +739,77 @@ module.exports = {
     }
   },
 
-  createComment: async (req, res) => {
+  getAllOutStanding: async (req, res) => {
     try {
-      const { memberId, newsId } = req.params;
-      const { content } = req.body;
-      const comment = await dbModels.newsCommentsModel.create({
-        memberId,
-        newsId,
-        content,
+      const { page, size, startedAt, endedAt } = req.query;
+      let offset = 0;
+      let limit = 10;
+      if (page && size) {
+        offset = (Number(page) - 1) * Number(size);
+      }
+      if (size) {
+        limit = Number(size);
+      }
+      const startDate = startedAt
+        ? moment(startedAt).toDate()
+        : moment(new Date('1970-01-01')).toDate();
+      const endDate = endedAt
+        ? moment(endedAt).toDate()
+        : moment(new Date()).toDate();
+
+      if (!startedAt && !endedAt) {
+        throw new Error('Please choose date');
+      }
+
+      let outStandingData =
+        await dbModels.outstandingMembersModel.findAndCountAll({
+          offset,
+          limit,
+          attributes: ['id', 'time', 'createdAt', 'updatedAt'],
+          include: [
+            {
+              model: dbModels.membersModel,
+              attributes: [
+                'id',
+                'fullName',
+                'birthday',
+                'image',
+                'hometown',
+                'major',
+                'job',
+                'course',
+                'team',
+                'achievements',
+                'quote',
+                'hobby',
+                'description',
+                'gender',
+                'createdAt',
+                'updatedAt',
+              ],
+            },
+          ],
+          where: {
+            time: {
+              [Op.gte]: startDate,
+              [Op.lte]: endDate,
+            },
+            isDeleted: false,
+          },
+          order: [['createdAt', 'DESC']],
+        });
+
+      outStandingData.rows.forEach((value, index) => {
+        if (value?.member?.avatar) {
+          data.rows[index].member.avatar =
+            imageService.getFullPathFileGgStorage(value?.member?.avatar);
+        }
       });
-      return res.status(STATUS_CODE[200].code).json({
-        comment,
+
+      return res.status(STATUS_CODE[209].code).json({
         success: true,
-        message: STATUS_CODE[200].message,
-      });
-    } catch (error) {
-      return res.status(STATUS_CODE[500].code).json({
-        success: false,
-        message: STATUS_CODE[500].message,
-        error: error.message,
-      });
-    }
-  },
-
-  updateComment: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { content } = req.body;
-
-      await dbModels.newsCommentsModel.update({ content }, { where: { id } });
-
-      return res.status(STATUS_CODE[200].code).json({
-        success: true,
-        message: STATUS_CODE[200].message,
-      });
-    } catch (error) {
-      return res.status(STATUS_CODE[500].code).json({
-        success: false,
-        message: STATUS_CODE[500].message,
-        error: error.message,
-      });
-    }
-  },
-
-  deleteComment: async (req, res) => {
-    try {
-      const { id } = req.params;
-
-      await dbModels.newsCommentsModel.update(
-        { isDeleted: true },
-        { where: { id } }
-      );
-
-      return res.status(STATUS_CODE[200].code).json({
-        success: true,
-        message: STATUS_CODE[200].message,
+        message: STATUS_CODE[209].message,
+        data: outStandingData,
       });
     } catch (error) {
       return res.status(STATUS_CODE[500].code).json({

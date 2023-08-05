@@ -10,10 +10,21 @@ module.exports = (sequelize, DataTypes) => {
       News.hasMany(models.news_comments, {
         foreignKey: 'newsId',
       });
+
+      News.belongsToMany(models.subjects, {
+        foreignKey: 'newsId',
+        through: 'news_subjects',
+        as: 'list_subjects',
+      });
+
+      News.hasMany(models.viewers, {
+        foreignKey: 'newsId',
+      });
     }
   }
   News.init(
     {
+      title: DataTypes.STRING,
       content: DataTypes.TEXT,
       views: {
         type: DataTypes.INTEGER,

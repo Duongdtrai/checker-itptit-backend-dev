@@ -1,6 +1,9 @@
 const dbModels = require('../../../utilities/dbModels');
-const statusCode = require('./skill.constant');
-const { validateSkillId, validateCreateSkill } = require('./skill.validate');
+const statusCode = require('./subject.constants');
+const {
+  validateCreateSubject,
+  validateSubjectId,
+} = require('./subject.validate');
 
 module.exports = {
   getAll: async (req, res) => {
@@ -14,8 +17,7 @@ module.exports = {
       if (size) {
         limit = Number(size);
       }
-
-      const data = await dbModels.skillsModel.findAndCountAll({
+      const data = await dbModels.subjectsModel.findAndCountAll({
         offset,
         limit,
         attributes: ['id', 'name', 'createdAt', 'updatedAt'],
@@ -38,16 +40,16 @@ module.exports = {
   },
   getById: async (req, res) => {
     try {
-      const id = await validateSkillId.validateAsync(req.params.id);
-      const skillExists = await dbModels.skillsModel.findOne({
-        attributes: ['id', 'name', 'createdAt', 'updatedAt', 'isDeleted'],
+      const id = await validateSubjectId.validateAsync(req.params.id);
+      const subjectExists = await dbModels.subjectsModel.findOne({
+        attributes: ['id', 'name', 'createdAt', 'updatedAt'],
         where: { id, isDeleted: false },
       });
-      if (!skillExists) {
-        throw new Error('Skill does not exist');
+      if (!subjectExists) {
+        throw new Error('Subject is not exist');
       }
       return res.status(statusCode[200].code).json({
-        data: skillExists,
+        data: subjectExists,
         success: true,
         message: statusCode[200].message,
       });
@@ -62,20 +64,24 @@ module.exports = {
   create: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-      const { name } = await validateCreateSkill.validateAsync(req.body);
-      const data = await dbModels.skillsModel.create(
-        {
+      const { name } = await validateCreateSubject.validateAsync(req.body);
+      const subjectExist = await dbModels.subjectsModel.findOne({
+        where: {
           name,
         },
-        {
-          transaction,
-        }
+      });
+      if (subjectExist) {
+        throw new Error('Subject is exist');
+      }
+      const subjectNew = await dbModels.subjectsModel.create(
+        { name },
+        { transaction }
       );
       await transaction.commit();
-      return res.status(statusCode[200].code).json({
-        data,
+      return res.status(201).json({
         success: true,
-        message: statusCode[200].message,
+        message: 'Subject created successfully!',
+        data: subjectNew,
       });
     } catch (error) {
       await transaction.rollback();
@@ -90,26 +96,32 @@ module.exports = {
   update: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-      const id = await validateSkillId.validateAsync(req.params.id);
-      const { name } = await validateCreateSkill.validateAsync(req.body);
-      const skillExists = await dbModels.skillsModel.findOne({
+      const id = await validateSubjectId.validateAsync(req.params.id);
+      const { name } = await validateCreateSubject.validateAsync(req.body);
+      const subjectExist = await dbModels.subjectsModel.findOne({
+        attributes: ['id', 'isDeleted'],
         where: {
           id,
           isDeleted: false,
         },
       });
-      if (!skillExists) {
-        throw new Error('Skill does not exist');
+      if (!subjectExist) {
+        throw new Error('Subject is not exist');
       }
-      const data = await dbModels.skillsModel.update(
+      const subjectNew = await dbModels.subjectsModel.update(
         { name },
-        { where: { id }, transaction }
+        {
+          where: {
+            id,
+          },
+          transaction,
+        }
       );
       await transaction.commit();
-      return res.status(statusCode[200].code).json({
-        data,
+      return res.status(201).json({
         success: true,
-        message: statusCode[200].message,
+        message: 'Subject update successfully!',
+        data: subjectNew,
       });
     } catch (error) {
       await transaction.rollback();
@@ -124,17 +136,17 @@ module.exports = {
   delete: async (req, res) => {
     const transaction = await itptit.db.sequelize.transaction();
     try {
-      const id = await validateSkillId.validateAsync(req.params.id);
-      const skillExists = await dbModels.skillsModel.findOne({
+      const id = await validateSubjectId.validateAsync(req.params.id);
+      const skillExists = await dbModels.subjectsModel.findOne({
         where: {
           id,
-          isDeleted: true,
+          isDeleted: false,
         },
       });
       if (!skillExists) {
-        throw new Error('Skill does not exist');
+        throw new Error('Subject does not exist');
       }
-      await dbModels.skillsModel.update(
+      await dbModels.subjectsModel.update(
         { isDeleted: true },
         { where: { id }, transaction }
       );

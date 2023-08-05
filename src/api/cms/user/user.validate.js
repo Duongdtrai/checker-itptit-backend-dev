@@ -42,9 +42,13 @@ const validateCmsCreateMember = Joi.object({
   achievements: Joi.string().allow(null, ''),
   quote: Joi.string().allow(null, ''),
   isFamous: Joi.boolean().required(),
+  listSkills: Joi.array().allow(null, ''),
+  listBands: Joi.array().allow(null, ''),
+  timeOutstanding: Joi.number().allow(null, ''),
 });
 
 const validateChangeUser = Joi.object({
+  userId: Joi.number().required(),
   email: Joi.string()
     .pattern(/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/)
     .required(),
@@ -52,7 +56,6 @@ const validateChangeUser = Joi.object({
   fullName: Joi.string().required(),
   gender: Joi.number().valid(1, 2).required(),
   birthday: Joi.string().required(),
-  image: Joi.string().allow(null, ''),
   hometown: Joi.string().allow(null, ''),
   major: Joi.string().required(),
   job: Joi.string().allow(null, ''),
@@ -63,6 +66,10 @@ const validateChangeUser = Joi.object({
   achievements: Joi.string().allow(null, ''),
   quote: Joi.string().allow(null, ''),
   isFamous: Joi.boolean().required(),
+  listSkills: Joi.array().allow(null, ''),
+  listBands: Joi.array().allow(null, ''),
+  timeOutstanding: Joi.string().allow(null, ''),
+  checkOutstanding: Joi.boolean().allow(null, ''),
 });
 
 const validateEmail = Joi.string().email().required();
