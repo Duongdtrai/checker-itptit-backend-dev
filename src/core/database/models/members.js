@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
 
       Members.belongsToMany(models.bands, {
         through: models.members_bands,
+        foreignKey: 'memberId',
       });
 
       Members.belongsToMany(models.periods, {
@@ -25,6 +26,10 @@ module.exports = (sequelize, DataTypes) => {
       Members.hasMany(models.news_comments, {
         foreignKey: 'memberId',
       });
+
+      Members.belongsTo(models.users, {
+        foreignKey: 'userId',
+      });
     }
   }
   Members.init(
@@ -32,6 +37,7 @@ module.exports = (sequelize, DataTypes) => {
       fullName: DataTypes.STRING,
       birthday: DataTypes.STRING,
       image: DataTypes.STRING,
+      avatar: DataTypes.STRING,
       hometown: DataTypes.STRING,
       major: DataTypes.INTEGER,
       job: DataTypes.INTEGER,

@@ -1,6 +1,7 @@
 const { Storage } = require('@google-cloud/storage');
 const multer = require('multer');
 const path = require('path');
+const sharp = require('sharp');
 
 const keyFilePath = path.join(__dirname, '../../../gg-cloud-key.json');
 
@@ -10,7 +11,7 @@ const storage = new Storage({
 });
 
 module.exports = {
-  uploadFile: ({ req, fileProperties, folder, isTemp = false }) => {
+  uploadFile: ({ req, fileProperties, folder, resize, isTemp = false }) => {
     return new Promise((resolve, reject) => {
       const file = multer({
         storage: multer.memoryStorage(),
@@ -49,7 +50,17 @@ module.exports = {
                   },
                 };
 
-                await bucket.file(gcsFileName).save(file.buffer, fileOptions);
+                const resizedImageBuffer = file.buffer;
+                if (resize) {
+                  resizedImageBuffer = await sharp(file.buffer)
+                    .resize(resize?.width, resize?.height, { fit: 'inside' })
+                    .toBuffer();
+                }
+
+                await bucket
+                  .file(gcsFileName)
+                  .save(resizedImageBuffer, fileOptions);
+
                 pathImg.push(gcsFileName);
               }
             } else if (req.files.length === 1 && req.files[0].buffer) {
@@ -65,8 +76,16 @@ module.exports = {
                   contentType: file.mimetype,
                 },
               };
+              const resizedImageBuffer = file.buffer;
+              if (resize) {
+                resizedImageBuffer = await sharp(file.buffer)
+                  .resize(resize?.width, resize?.height, { fit: 'inside' })
+                  .toBuffer();
+              }
 
-              await bucket.file(gcsFileName).save(file.buffer, fileOptions);
+              await bucket
+                .file(gcsFileName)
+                .save(resizedImageBuffer, fileOptions);
               pathImg = gcsFileName;
             }
 

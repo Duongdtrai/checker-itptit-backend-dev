@@ -14,4 +14,5 @@ module.exports = {
   newsCommentsModel: db.news_comments,
   newsSubjectsModel: db.news_subjects,
   subjectsModel: db.subjects,
+  viewersModel: db.viewers,
 };

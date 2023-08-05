@@ -1,18 +1,20 @@
 'use strict';
 const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class Subjects extends Model {
+  class Viewers extends Model {
     static associate(models) {
-      Subjects.belongsToMany(models.news, {
-        foreignKey: 'subjectId',
-        through: 'news_subjects',
-        as: 'list_news',
+      Viewers.belongsTo(models.members, {
+        foreignKey: 'memberId',
+      });
+      Viewers.belongsTo(models.news, {
+        foreignKey: 'newsId',
       });
     }
   }
-  Subjects.init(
+  Viewers.init(
     {
-      name: DataTypes.STRING,
+      memberId: DataTypes.INTEGER,
+      newsId: DataTypes.INTEGER,
       isDeleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: 0,
@@ -20,10 +22,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'subjects',
+      modelName: 'viewers',
       timestamps: true,
       // paranoid: true,
     }
   );
-  return Subjects;
+  return Viewers;
 };

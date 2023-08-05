@@ -6,7 +6,6 @@ const formidable = require('formidable');
 
 /** API for cms */
 router.get(API.ADMIN.USER.DETAIL_ADMIN, userController.getDetailAdmin);
-router.post(API.ADMIN.USER.LOGIN, userController.loginCMS);
 router.post(API.ADMIN.USER.CHANGE_PASSWORD, userController.changePasswordCMS);
 router.post(
   API.ADMIN.USER.CREATE_ACCOUNT_MEMBER,
@@ -29,11 +28,11 @@ router.post(
   },
   userController.importUser
 );
-
 router.post(API.ADMIN.USER.UPLOAD_IMAGE, userController.uploadImage);
-router.get(API.ADMIN.USER.GET_ALL, userController.getAllMembers);
-router.post(API.ADMIN.USER.CREATE_COMMENT, userController.createComment);
-router.put(API.ADMIN.USER.DELETE_COMMENT, userController.deleteComment);
-router.put(API.ADMIN.USER.UPDATE_COMMENT, userController.updateComment);
 
+router.post(API.ADMIN.USER.GET_ALL, userController.getAllMembers);
+router.get(
+  API.ADMIN.USER.GET_ALL_OUTSTANDING,
+  userController.getAllOutStanding
+);
 module.exports = router;

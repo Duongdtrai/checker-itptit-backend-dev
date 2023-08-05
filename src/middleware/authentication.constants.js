@@ -1,6 +1,5 @@
 const EXCEPTION_API = {
-  CMS_LOGIN: '/cms/user/login',
-  LP_LOGIN: '/landing-page/user/login',
+  LOGIN: '/user/sing_in',
   CMS_FORGOT_PASSWORD: '/cms/user/forgot-password',
   LP_FORGOT_PASSWORD: '/landing-page/user/forgot_password',
   LP_RESET_PASSWORD: '/landing-page/user/reset_password',

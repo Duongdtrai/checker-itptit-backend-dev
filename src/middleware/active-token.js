@@ -21,7 +21,7 @@ module.exports = async (req, res, next) => {
     const paths = url.split('/');
     const userId = req.userData.userId;
     const data = await dbModels.usersModel.findOne({
-      attributes: ['id', 'role', 'username', "email"],
+      attributes: ['id', 'role', 'username', 'email'],
       where: {
         id: userId,
       },
@@ -30,9 +30,11 @@ module.exports = async (req, res, next) => {
           as: 'member',
           model: dbModels.membersModel,
           attributes: [
+            'id',
             'fullName',
             'birthday',
             'image',
+            'avatar',
             'hometown',
             'major',
             'job',
