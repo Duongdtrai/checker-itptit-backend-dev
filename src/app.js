@@ -17,12 +17,13 @@ const { serverLogger } = require('./core/logging/logger');
 const whiteList = ['*'];
 
 //CORS
-app.use(
-  cors({
-    origin: whiteList,
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: whiteList,
+//     credentials: true,
+//   })
+// );
+app.use(cors())
 
 /** Init 'itptit' - global application manager */
 global.itptit = {};
