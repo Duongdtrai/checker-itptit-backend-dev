@@ -340,6 +340,15 @@ module.exports = {
           course: result[COLUMN_USER_IMPORT.course],
           team: Number(result[COLUMN_USER_IMPORT.team]),
         };
+        if (!newData?.username) {
+          throw new Error('Account need username required');
+        }
+        if (!newData?.email) {
+          throw new Error(`${username} hasn't email`);
+        }
+        if (!newData?.birthday) {
+          throw new Error(`${username} hasn't birthday`);
+        }
         await validateCmsImportFile.validateAsync(newData);
         const userExist = await dbModels.usersModel.findOne({
           where: {
