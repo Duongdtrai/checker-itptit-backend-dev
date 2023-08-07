@@ -13,6 +13,7 @@ const imageService = require('../../../utilities/image');
 
 module.exports = {
   getById: async (req, res) => {
+    const transaction = await itptit.db.sequelize.transaction();
     try {
       const id = await validateNewId.validateAsync(req.params.id);
       const newsExist = await dbModels.newsModel.findOne({
@@ -75,12 +76,33 @@ module.exports = {
           newsExist.thumbnails[0].url
         );
       }
+      const viewerExist = await dbModels.viewersModel.findOne({
+        attributes: ['id', 'memberId', 'newsId', 'isDeleted'],
+        where: {
+          memberId: req.userData.member.id,
+          newsId: id,
+          isDeleted: 0,
+        },
+      });
+      if (!viewerExist) {
+        await dbModels.viewersModel.create(
+          {
+            memberId: req.userData.member.id,
+            newsId: id,
+          },
+          {
+            transaction,
+          }
+        );
+      }
+      await transaction.commit();
       return res.status(statusCode[200].code).json({
         data: newsExist,
         success: true,
         message: statusCode[200].message,
       });
     } catch (error) {
+      await transaction.rollback();
       return res.status(statusCode[500].code).json({
         success: false,
         message: statusCode[500].message,
