@@ -44,6 +44,7 @@ const validateChangeUser = Joi.object({
 
 const validateEmail = Joi.string().email().required();
 const validatePassword = Joi.string().min(1).max(32).required();
+const validateUserId = Joi.number().required()
 
 module.exports = {
   validateCmsAuthenticationSchema,
@@ -52,4 +53,5 @@ module.exports = {
   validateEmail,
   validateChangeUser,
   validatePassword,
+  validateUserId
 };

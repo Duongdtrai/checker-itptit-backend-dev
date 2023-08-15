@@ -10,6 +10,7 @@ const {
   validateCmsCreateMember,
   validateCmsImportFile,
   validateChangeUser,
+  validateUserId,
 } = require('./user.validate');
 const userService = require('./user.service');
 const moment = require('moment');
@@ -21,15 +22,57 @@ const imageService = require('../../../utilities/image');
 module.exports = {
   getDetailAdmin: async (req, res) => {
     try {
-      if (req.userData.member.image) {
-        req.userData.member.image = imageService.getFullPathFileGgStorage(
-          req.userData.member.image
+      let userData = req.userData
+      if (req.query.userId) {
+        await validateUserId.validateAsync(req.query.userId)
+         userData = await dbModels.usersModel.findOne({
+          attributes: ['id', 'role', 'username', 'email'],
+          where: {
+            id: req.query.userId,
+          },
+          include: [
+            {
+              as: 'member',
+              model: dbModels.membersModel,
+              attributes: [
+                'id',
+                'fullName',
+                'birthday',
+                'image',
+                'avatar',
+                'hometown',
+                'major',
+                'job',
+                'course',
+                'team',
+                'achievements',
+                'quote',
+                'hobby',
+                'description',
+                'gender',
+                'createdAt',
+              ],
+            },
+          ],
+        });
+        if (!userData) {
+          throw new Error('Not found user')
+        }
+      }
+      if (userData.member.image) {
+        userData.member.image = imageService.getFullPathFileGgStorage(
+          userData.member.image
+        );
+      }
+        if (userData.member.avatar) {
+        userData.member.avatar = imageService.getFullPathFileGgStorage(
+          userData.member.avatar
         );
       }
       return res.status(STATUS_CODE[204].code).json({
         success: false,
         message: STATUS_CODE[204].message,
-        data: req.userData,
+        data: userData,
       });
     } catch (error) {
       return res.status(STATUS_CODE[500].code).json({
