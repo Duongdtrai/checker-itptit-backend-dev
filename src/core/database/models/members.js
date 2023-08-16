@@ -47,6 +47,7 @@ module.exports = (sequelize, DataTypes) => {
       quote: DataTypes.STRING,
       hobby: DataTypes.STRING,
       description: DataTypes.STRING,
+      phoneNumber: DataTypes.STRING,
       gender: {
         type: DataTypes.INTEGER,
         defaultValue: 1,

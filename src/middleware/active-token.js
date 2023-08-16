@@ -36,6 +36,7 @@ module.exports = async (req, res, next) => {
             'image',
             'avatar',
             'hometown',
+            'phoneNumber',
             'major',
             'job',
             'course',

@@ -52,6 +52,7 @@ module.exports = {
       return res.status(statusCode[200].code).json({
         success: true,
         message: statusCode[200].message,
+        data: data
       });
     } catch (error) {
       await transaction.rollback();
@@ -312,7 +313,7 @@ module.exports = {
           'updatedAt',
           [
             sequelize.literal(
-              `(select count(Viewers.memberId) from Viewers where newsId = news.id)`
+              `(select count(viewers.memberId) from viewers where newsId = news.id)`
             ),
             'views',
           ],

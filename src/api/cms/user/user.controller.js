@@ -22,10 +22,10 @@ const imageService = require('../../../utilities/image');
 module.exports = {
   getDetailAdmin: async (req, res) => {
     try {
-      let userData = req.userData
+      let userData = req.userData;
       if (req.query.userId) {
-        await validateUserId.validateAsync(req.query.userId)
-         userData = await dbModels.usersModel.findOne({
+        await validateUserId.validateAsync(req.query.userId);
+        userData = await dbModels.usersModel.findOne({
           attributes: ['id', 'role', 'username', 'email'],
           where: {
             id: req.query.userId,
@@ -37,6 +37,7 @@ module.exports = {
               attributes: [
                 'id',
                 'fullName',
+                'phoneNumber',
                 'birthday',
                 'image',
                 'avatar',
@@ -56,7 +57,7 @@ module.exports = {
           ],
         });
         if (!userData) {
-          throw new Error('Not found user')
+          throw new Error('Not found user');
         }
       }
       if (userData.member.image) {
@@ -64,7 +65,7 @@ module.exports = {
           userData.member.image
         );
       }
-        if (userData.member.avatar) {
+      if (userData.member.avatar) {
         userData.member.avatar = imageService.getFullPathFileGgStorage(
           userData.member.avatar
         );
@@ -151,6 +152,7 @@ module.exports = {
         gender,
         birthday,
         hometown,
+        phoneNumber,
         major,
         job,
         course,
@@ -191,6 +193,7 @@ module.exports = {
       );
       await dbModels.membersModel.update(
         {
+          phoneNumber,
           fullName,
           gender,
           birthday,
@@ -256,6 +259,7 @@ module.exports = {
         hometown,
         major,
         job,
+        phoneNumber,
         course,
         team,
         achievements,
@@ -319,6 +323,7 @@ module.exports = {
           isFamous,
           hobby,
           description,
+          phoneNumber
         },
         {
           transaction,
@@ -522,7 +527,7 @@ module.exports = {
 
   getAllMembers: async (req, res) => {
     try {
-      const { page, size } = req.query;
+      const { page, size, isFamous } = req.query;
       let offset = 0;
       let limit = 10;
       if (page && size) {
@@ -532,41 +537,7 @@ module.exports = {
         limit = Number(size);
       }
       const { type_sort, courses, teams, bands, skills, roles } = req.body;
-
-      /** search for course or teams */
-      const whereConfig = {
-        where: {
-          ...(courses ? { course: { [Op.in]: courses } } : {}),
-          ...(teams ? { team: { [Op.in]: teams } } : {}),
-          isDeleted: false,
-        },
-      };
-
-      /** search for bands or team project */
-      const bandsConfig = {
-        where: {
-          ...(bands?.length > 0 ? { id: { [Op.in]: bands } } : {}),
-          isDeleted: false,
-        },
-      };
-
-      /** search for skills */
-      const skillsConfig = {
-        where: {
-          ...(skills ? { id: { [Op.in]: skills } } : {}),
-          isDeleted: false,
-        },
-      };
-
-      /** search for chức vụ */
-      const roleConfig = {
-        where: {
-          ...(roles?.length > 0 ? { role: { [Op.in]: roles } } : {}),
-          isDeleted: false,
-        },
-      };
-
-      const data = await dbModels.membersModel.findAndCountAll({
+      const operator = {
         offset,
         limit,
         attributes: [
@@ -584,6 +555,7 @@ module.exports = {
           'quote',
           'hobby',
           'description',
+          'phoneNumber',
           'gender',
           'isFamous',
           'createdAt',
@@ -598,13 +570,12 @@ module.exports = {
                 'bandId',
                 'memberId',
                 'periodId',
+                'role',
                 'createdAt',
                 'updatedAt',
               ],
               model: dbModels.memberBandsModel,
-              ...roleConfig,
             },
-            ...bandsConfig,
           },
           {
             attributes: ['id', 'name', 'createdAt', 'updatedAt'],
@@ -613,17 +584,80 @@ module.exports = {
               attributes: ['memberId', 'skillId', 'createdAt', 'updatedAt'],
               model: dbModels.memberSkillModel,
             },
-            ...skillsConfig,
           },
           {
             model: dbModels.usersModel,
             attributes: ['id', 'email', 'username', 'createdAt', 'updatedAt'],
           },
         ],
-        ...whereConfig,
+        where: {
+          [Op.and]: [],
+        },
         order: type_sort?.length === 2 ? [type_sort] : [['createdAt', 'DESC']],
-      });
+        group: ['members.id'],
+      };
 
+      /** search for isFamous */
+      if (isFamous && (Number(isFamous) === 1 || Number(isFamous) === 0)) {
+        operator.where[Op.and] = [
+          ...operator.where[Op.and],
+          {
+            isFamous: Number(isFamous),
+          },
+        ];
+      }
+      /** search for course */
+      if (courses) {
+        operator.where[Op.and] = [
+          ...operator.where[Op.and],
+          {
+            course: { [Op.in]: courses },
+          },
+        ];
+      }
+
+      /** search for teams */
+      if (teams) {
+        operator.where[Op.and] = [
+          ...operator.where[Op.and],
+          {
+            team: { [Op.in]: teams },
+          },
+        ];
+      }
+
+      /** search for bands or team project */
+      if (bands) {
+        operator.subQuery = false;
+        operator.where[Op.and] = [
+          ...operator.where[Op.and],
+          {
+            '$bands.id$': { [Op.in]: bands },
+          },
+        ];
+      }
+      /** search for skills */
+      if (skills) {
+        operator.subQuery = false;
+        operator.where[Op.and] = [
+          ...operator.where[Op.and],
+          {
+            '$skills.id$': { [Op.in]: skills },
+          },
+        ];
+      }
+
+      /** search for chức vụ */
+      if (roles) {
+        operator.subQuery = false;
+        operator.where[Op.and] = [
+          ...operator.where[Op.and],
+          {
+            '$bands.members_bands.role$': { [Op.in]: roles },
+          },
+        ];
+      }
+      const data = await dbModels.membersModel.findAndCountAll(operator);
       data.rows.forEach((value, index) => {
         if (value?.image) {
           data.rows[index].image = imageService.getFullPathFileGgStorage(
@@ -640,7 +674,7 @@ module.exports = {
         success: true,
         message: STATUS_CODE[208].message,
         data: {
-          count: data?.rows?.length,
+          count: data?.count?.length,
           rows: data?.rows,
         },
       });
@@ -688,6 +722,7 @@ module.exports = {
                 'fullName',
                 'birthday',
                 'image',
+                'phoneNumber',
                 'hometown',
                 'major',
                 'job',
@@ -698,6 +733,7 @@ module.exports = {
                 'hobby',
                 'description',
                 'gender',
+                'phoneNumber',
                 'createdAt',
                 'updatedAt',
               ],
