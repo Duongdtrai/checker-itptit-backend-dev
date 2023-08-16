@@ -54,7 +54,7 @@ module.exports = {
             achievements: null,
             description: null,
             quote: null,
-            isFamous: 2,
+            isFamous: 1,
             isDeleted: false,
             createdAt: new Date(),
             updatedAt: new Date(),

@@ -40,6 +40,7 @@ const validateChangeUser = Joi.object({
   achievements: Joi.string().allow(null, ''),
   quote: Joi.string().allow(null, ''),
   listSkills: Joi.array().allow(null, ''),
+  phoneNumber: Joi.string().allow(null, ''),
 });
 
 const validateEmail = Joi.string().email().required();

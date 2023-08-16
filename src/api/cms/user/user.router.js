@@ -35,4 +35,5 @@ router.get(
   API.ADMIN.USER.GET_ALL_OUTSTANDING,
   userController.getAllOutStanding
 );
+
 module.exports = router;

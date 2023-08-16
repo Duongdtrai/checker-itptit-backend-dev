@@ -45,6 +45,7 @@ const validateCmsCreateMember = Joi.object({
   listSkills: Joi.array().allow(null, ''),
   listBands: Joi.array().allow(null, ''),
   timeOutstanding: Joi.number().allow(null, ''),
+  phoneNumber: Joi.string().allow(null, ''),
 });
 
 const validateChangeUser = Joi.object({
@@ -70,6 +71,7 @@ const validateChangeUser = Joi.object({
   listBands: Joi.array().allow(null, ''),
   timeOutstanding: Joi.string().allow(null, ''),
   checkOutstanding: Joi.boolean().allow(null, ''),
+  phoneNumber: Joi.string().allow(null, ''),
 });
 
 const validateEmail = Joi.string().email().required();
