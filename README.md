@@ -18,6 +18,9 @@ Tiếp theo, chạy câu lệnh để migrate file migrations, từ đó tạo b
 (thường thì chỉ cần chạy lần đầu tiên kéo dự án về, nếu sau code có update file migration mới thì mới cần chạy lại)
 ### `npm run migratedb`
 
+Seed DB (cụ thể là seed tài khoản admin itptit)
+### `npm run seederdb`
+
 Chạy backend
 
 ### `npm run dev`
